@@ -3,6 +3,11 @@ name: BoringCache validation
 on:
   workflow_dispatch:
     inputs:
+      connect:
+        description: Connect this repository to BoringCache through GitHub OIDC
+        required: false
+        default: false
+        type: boolean
       cli_version:
         description: Optional exact BoringCache CLI release or prerelease tag
         required: false
@@ -18,10 +23,28 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  connect:
+    name: Connect GitHub OIDC
+    if: inputs.connect == true && github.ref == 'refs/heads/boringcache-validation'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Install BoringCache
+        run: |
+          curl -fsSL https://install.boringcache.com/install.sh -o "$RUNNER_TEMP/install-boringcache.sh"
+          sh "$RUNNER_TEMP/install-boringcache.sh"
+          printf '%s/.local/bin\n' "$HOME" >> "$GITHUB_PATH"
+      - name: Approve repository connection
+        run: boringcache ci connect --oidc-provider github-actions
+
   modules-uncached:
     name: No cache modules uncached
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    if: inputs.connect != true && github.ref == 'refs/heads/boringcache-validation'
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -62,6 +85,7 @@ jobs:
     name: BoringCache modules cold
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    if: inputs.connect != true && github.ref == 'refs/heads/boringcache-validation'
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -112,6 +136,7 @@ jobs:
     name: BoringCache modules warm
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    if: inputs.connect != true && github.ref == 'refs/heads/boringcache-validation'
     needs: modules-cold
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -164,6 +189,7 @@ jobs:
     name: No cache compiler uncached
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    if: inputs.connect != true && github.ref == 'refs/heads/boringcache-validation'
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -202,6 +228,7 @@ jobs:
     name: BoringCache compiler cold
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    if: inputs.connect != true && github.ref == 'refs/heads/boringcache-validation'
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -249,6 +276,7 @@ jobs:
     name: BoringCache compiler warm
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    if: inputs.connect != true && github.ref == 'refs/heads/boringcache-validation'
     needs: compiler-cold
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
