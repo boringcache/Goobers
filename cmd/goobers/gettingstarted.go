@@ -205,7 +205,7 @@ func stopGettingStarted(server *http.Server, cancelRequests context.CancelFunc, 
 func checkGuidedInitTarget(ctx context.Context, instancePath string, allowEphemeral bool) error {
 	if err := worktree.CheckInitTarget(ctx, instancePath, allowEphemeral); err != nil {
 		return fmt.Errorf(
-			"%w; to acknowledge this guided target, rerun `goobers init --guided --instance-path %q --allow-ephemeral`",
+			"%w; to acknowledge this guided target, rerun `goobers init --guided --instance-path \"%s\" --allow-ephemeral`",
 			err,
 			instancePath,
 		)

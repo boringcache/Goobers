@@ -45,7 +45,7 @@ func standardInitOptions(template, harness, ciCommand, capabilities, provider st
 
 func seedInitTemplate(root, template, harness string, demo bool, standard *instance.GuidedOptions, diagnostic io.Writer) (*instance.InitResult, error) {
 	observe := func(root, id string) error {
-		_, err := fmt.Fprintf(diagnostic, "Instance root: %q; instance ID: %q\n", canonicalStatusRoot(root), id)
+		_, err := fmt.Fprintf(diagnostic, "Instance root: \"%s\"; instance ID: \"%s\"\n", canonicalStatusRoot(root), id)
 		return err
 	}
 	switch {

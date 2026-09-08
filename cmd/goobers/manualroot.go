@@ -22,7 +22,7 @@ func prepareManualRoot(layout instance.Layout, diagnostic io.Writer) error {
 	if err != nil {
 		return err
 	}
-	if _, err := fmt.Fprintf(diagnostic, "Instance root: %q; instance ID: %q\n", canonicalStatusRoot(layout.Root), id); err != nil {
+	if _, err := fmt.Fprintf(diagnostic, "Instance root: \"%s\"; instance ID: \"%s\"\n", canonicalStatusRoot(layout.Root), id); err != nil {
 		return fmt.Errorf("display mutation target: %w", err)
 	}
 	return nil

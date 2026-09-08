@@ -95,6 +95,10 @@ spec:
         fail: "@abort"
 `
 
+func sampleRunDir(root string) string {
+	return instance.NewLayout(root).ForGaggle("example").RunsDir()
+}
+
 func TestGettingStartedSampleQuickstartThroughRealRunner(t *testing.T) {
 	root, remote, disposableRoot, seed, server := initGettingStartedQuickstart(t)
 
@@ -107,7 +111,7 @@ func TestGettingStartedSampleQuickstartThroughRealRunner(t *testing.T) {
 	}
 
 	runID := runIDFromRunStdout(t, stdout)
-	reader, err := journal.OpenRead(filepath.Join(root, "runs", runID))
+	reader, err := journal.OpenRead(filepath.Join(sampleRunDir(root), runID))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -245,7 +249,7 @@ func TestGettingStartedSampleQuickstartThroughRealRunner(t *testing.T) {
 			t.Fatalf("broken quickstart run did not fail: %q", stdout)
 		}
 		runID := runIDFromRunStdout(t, stdout)
-		reader, err := journal.OpenRead(filepath.Join(brokenRoot, "runs", runID))
+		reader, err := journal.OpenRead(filepath.Join(sampleRunDir(brokenRoot), runID))
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -280,7 +284,7 @@ func TestGettingStartedSampleImplementationLocalCIThroughRealRunner(t *testing.T
 			}
 
 			runID := runIDFromRunStdout(t, stdout)
-			reader, err := journal.OpenRead(filepath.Join(root, "runs", runID))
+			reader, err := journal.OpenRead(filepath.Join(sampleRunDir(root), runID))
 			if err != nil {
 				t.Fatal(err)
 			}

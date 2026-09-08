@@ -88,12 +88,12 @@ func optionalStatusRoot(enabled bool, layout instance.Layout, now time.Time) *st
 }
 
 func writeStatusRoot(w io.Writer, root statusRootIdentity) {
-	pf(w, "Instance root: %q; instance ID: %q; daemon: %s; owning PID: %d\n", root.Path, root.ID, root.DaemonState, root.OwningPID)
+	pf(w, "Instance root: \"%s\"; instance ID: \"%s\"; daemon: %s; owning PID: %d\n", root.Path, root.ID, root.DaemonState, root.OwningPID)
 	if root.DecommissionedAt != nil {
 		pf(w, "  Historical root; do not use. Decommissioned %s: %q\n", root.DecommissionedAt.Format(time.RFC3339Nano), root.DecommissionReason)
 	}
 	if root.RecordedPID != 0 {
-		pf(w, "  Recorded daemon PID: %d; recorded root: %q (recorded metadata alone is not liveness)\n", root.RecordedPID, root.RecordedRoot)
+		pf(w, "  Recorded daemon PID: %d; recorded root: \"%s\" (recorded metadata alone is not liveness)\n", root.RecordedPID, root.RecordedRoot)
 	}
 	for _, problem := range []string{root.IdentityProblem, root.DaemonProblem, root.LifecycleProblem} {
 		if problem != "" {

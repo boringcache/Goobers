@@ -48,7 +48,7 @@ func prepareRemoteRoot(ctx context.Context, endpoint string, diagnostic io.Write
 	if err := validateRemoteRoot(root, identity); err != nil {
 		return err
 	}
-	if _, err := fmt.Fprintf(diagnostic, "Remote instance root: %q; instance ID: %q\n", root, identity.ID); err != nil {
+	if _, err := fmt.Fprintf(diagnostic, "Remote instance root: \"%s\"; instance ID: \"%s\"\n", root, identity.ID); err != nil {
 		return fmt.Errorf("display remote mutation target: %w", err)
 	}
 	return nil

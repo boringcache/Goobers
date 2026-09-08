@@ -341,7 +341,7 @@ func finishInitValidation(root string, stdout, stderr io.Writer) int {
 func printInitTargetOverride(stderr io.Writer, err error) {
 	var unsafe *worktree.UnsafeInitTargetError
 	if errors.As(err, &unsafe) {
-		pf(stderr, "note: to acknowledge this target, rerun `goobers init --allow-ephemeral %q`\n", unsafe.Safety.Path)
+		pf(stderr, "note: to acknowledge this target, rerun `goobers init --allow-ephemeral \"%s\"`\n", unsafe.Safety.Path)
 	}
 }
 

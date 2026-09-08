@@ -897,7 +897,7 @@ func (s *guidedServer) handleGuidedInitInstance(w http.ResponseWriter, r *http.R
 	}
 	var identityBanner string
 	result, err := instance.InitGuided(instancePath, opts, func(root, id string) error {
-		identityBanner = fmt.Sprintf("Instance root: %q; instance ID: %q", canonicalStatusRoot(root), id)
+		identityBanner = fmt.Sprintf("Instance root: \"%s\"; instance ID: \"%s\"", canonicalStatusRoot(root), id)
 		return s.errorLog.Output(2, identityBanner)
 	})
 	if err != nil {
