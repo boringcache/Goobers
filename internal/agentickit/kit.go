@@ -79,8 +79,13 @@ type Kit struct {
 	// Assets are each goober's asset bundle, materialised into the workspace
 	// before invocation.
 	Assets map[string]*gooberassets.WireBundle `json:"assets,omitempty"`
-	// EnvCapabilities is the instance's declared environment passthrough.
+	// EnvCapabilities maps declared capabilities to harness credential variables.
 	EnvCapabilities map[string]string `json:"envCapabilities,omitempty"`
+	// EnvPassthrough carries operator-approved variable names, never their values.
+	// Values come from the stage pod's own environment.
+	EnvPassthrough []string `json:"envPassthrough,omitempty"`
+	// HarnessCommand preserves the configured launcher for this stage's harness.
+	HarnessCommand map[string][]string `json:"harnessCommand,omitempty"`
 	// Grants are the capability grants in force for this stage.
 	Grants []Grant `json:"grants,omitempty"`
 	// SandboxPosture is the instance's sandbox posture, verbatim.

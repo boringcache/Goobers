@@ -164,6 +164,11 @@ func (w agenticKitWriter) buildKit(env apiv1.InvocationEnvelope, mode agentickit
 		wireGrants = append(wireGrants, agentickit.Grant{Goober: g.Goober, Capability: g.Capability, Ref: g.Ref})
 	}
 
+	var harnessCommand map[string][]string
+	if command := cfg.Runner.HarnessCommand[string(spec.Harness)]; len(command) > 0 {
+		harnessCommand = map[string][]string{string(spec.Harness): append([]string(nil), command...)}
+	}
+
 	return &agentickit.Kit{
 		Envelope:        env,
 		Mode:            mode,
@@ -171,6 +176,8 @@ func (w agenticKitWriter) buildKit(env apiv1.InvocationEnvelope, mode agentickit
 		Instructions:    instructions,
 		Assets:          assets,
 		EnvCapabilities: buildEnvCapabilities(),
+		EnvPassthrough:  append([]string(nil), cfg.Runner.EnvPassthrough...),
+		HarnessCommand:  harnessCommand,
 		Grants:          wireGrants,
 		SandboxPosture:  string(instance.EffectiveAgenticSandbox(cfg, nil)),
 	}, nil

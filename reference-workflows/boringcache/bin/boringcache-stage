@@ -1,0 +1,40 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+if [[ ${1:-} == -- ]]; then
+  shift
+fi
+if (( $# == 0 )); then
+  echo 'Usage: boringcache-stage -- COMMAND [ARG...]' >&2
+  exit 2
+fi
+
+case ${BORINGCACHE_CACHE_POLICY:-restore} in
+  restore) policy=--read-only ;;
+  publish) policy=--write ;;
+  *)
+    echo 'BORINGCACHE_CACHE_POLICY must be restore or publish.' >&2
+    exit 2
+    ;;
+esac
+
+if [[ -z ${BORINGCACHE_CI_BROKER_FILE:-} || ! -r $BORINGCACHE_CI_BROKER_FILE ]]; then
+  echo 'Run this stage inside boringcache ci run in the same pod or process environment.' >&2
+  exit 2
+fi
+
+# The executor or pod template has already selected its private cache paths.
+if [[ -z ${GOMODCACHE:-} ]]; then
+  GOMODCACHE=$(go env GOMODCACHE)
+  export GOMODCACHE
+fi
+
+args=(go --profile remediation "$policy" --no-git --fail-on-cache-error)
+if [[ -n ${BORINGCACHE_WORKSPACE:-} ]]; then
+  args+=(--workspace "$BORINGCACHE_WORKSPACE")
+fi
+
+# One native lifecycle restores modules, configures Go compiler caching, runs
+# the child, and saves eligible content before cleanup. Pod deletion removes
+# /cache; a self-runner executor removes cache paths inside its temp scope.
+exec boringcache "${args[@]}" -- "$@"

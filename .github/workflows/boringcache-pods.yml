@@ -1,0 +1,81 @@
+name: BoringCache remediation pods
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: boringcache-remediation-pods
+  cancel-in-progress: false
+
+jobs:
+  pods:
+    if: github.repository == 'boringcache/Goobers' && github.ref == 'refs/heads/boringcache-validation'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    env:
+      CLUSTER_NAME: goobers-pods-${{ github.run_id }}-${{ github.run_attempt }}
+      POD_IMAGE: goobers-cache-validation:${{ github.sha }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e
+        with:
+          go-version-file: go.mod
+          cache: false
+      - name: Set evidence directory
+        run: printf 'EVIDENCE_DIR=%s/pod-evidence\n' "$RUNNER_TEMP" >> "$GITHUB_ENV"
+      - name: Restore modules for building the test driver
+        uses: boringcache/one@e4ead12dabc993eba201c402a82e396166dade03 # v1.20.4
+        with:
+          cli-version: v1.20.5
+          mode: archive
+          trust-policy: restore
+          cache-profiles: modules
+          fail-on-cache-error: true
+      - name: Build the pod test image
+        shell: bash
+        run: |
+          mkdir -p "$EVIDENCE_DIR" "$RUNNER_TEMP/pod-image/source"
+          git rev-parse HEAD > "$EVIDENCE_DIR/validation-commit.txt"
+          cat .github/boringcache-upstream > "$EVIDENCE_DIR/upstream-commit.txt"
+          go version > "$EVIDENCE_DIR/go-version.txt"
+          boringcache --version > "$EVIDENCE_DIR/boringcache-version.txt"
+          git archive HEAD | tar -x -C "$RUNNER_TEMP/pod-image/source"
+          CGO_ENABLED=0 go test -c -o "$RUNNER_TEMP/pod-image/pod-validation.test" ./cmd/goobers
+          cp "$(command -v boringcache)" "$RUNNER_TEMP/pod-image/boringcache"
+          docker build --tag "$POD_IMAGE" --file reference-workflows/boringcache/validation/Dockerfile "$RUNNER_TEMP/pod-image"
+          docker image inspect "$POD_IMAGE" --format '{{.Id}}' > "$EVIDENCE_DIR/image-id.txt"
+      - name: Start a disposable Kubernetes cluster
+        shell: bash
+        run: |
+          curl --fail --silent --show-error --location https://github.com/kubernetes-sigs/kind/releases/download/v0.33.0/kind-linux-amd64 --output "$RUNNER_TEMP/kind"
+          printf '%s  %s\n' aee6151561422756b764a4ae28e7f44cda5af5a9eead3cc9985112b1de8d8e0d "$RUNNER_TEMP/kind" | sha256sum --check
+          chmod +x "$RUNNER_TEMP/kind"
+          curl --fail --silent --show-error --location https://dl.k8s.io/release/v1.37.0/bin/linux/amd64/kubectl --output "$RUNNER_TEMP/kubectl"
+          printf '%s  %s\n' 6129359f4e1f3848a5572ccb0b26cf28b8ca08cef38c95a765b2f64a2c961a2f "$RUNNER_TEMP/kubectl" | sha256sum --check
+          chmod +x "$RUNNER_TEMP/kubectl"
+          printf '%s\n' "$RUNNER_TEMP" >> "$GITHUB_PATH"
+          "$RUNNER_TEMP/kubectl" version --client --output=json > "$EVIDENCE_DIR/kubectl-version.json"
+          "$RUNNER_TEMP/kind" version > "$EVIDENCE_DIR/kind-version.txt"
+          "$RUNNER_TEMP/kind" create cluster --name "$CLUSTER_NAME" --wait 180s --image kindest/node:v1.37.0@sha256:a1ed56cfb0e7b93589bdf97c8cd566405a265939e3620fc4f5de89adff580ae5
+          "$RUNNER_TEMP/kind" load docker-image --name "$CLUSTER_NAME" "$POD_IMAGE"
+      - name: Warm modules and reuse them in new remediation pods
+        run: python3 reference-workflows/boringcache/validation/run-pods.py
+      - name: Delete the disposable cluster
+        if: always()
+        run: |
+          if [ -x "$RUNNER_TEMP/kind" ]; then
+            "$RUNNER_TEMP/kind" delete cluster --name "$CLUSTER_NAME"
+          fi
+      - name: Retain pod validation evidence
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: remediation-pods-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ env.EVIDENCE_DIR }}
+          if-no-files-found: error

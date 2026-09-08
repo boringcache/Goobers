@@ -1,0 +1,9 @@
+# Merge these names and the Copilot command into the existing runner block.
+# Only names are transported to pods; values come from the pod environment.
+runner:
+  envPassthrough:
+    - BORINGCACHE_CI_BROKER_FILE
+    - BORINGCACHE_CACHE_POLICY
+    - BORINGCACHE_WORKSPACE
+  harnessCommand:
+    copilot: ["/opt/goobers-cache/boringcache-copilot"]

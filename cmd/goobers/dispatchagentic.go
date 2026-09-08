@@ -290,6 +290,23 @@ func (r podCredentialResolver) Resolve(_ context.Context, name string) (string, 
 // existing newAgenticAdapter / repoCloneURL test seams.
 var podHarnessRegistry = buildHarnessRegistry
 
+// A configured name may extend the tool environment, but must not expose the
+// dispatcher's own authority to the harness. Deterministic pods enforce the
+// same boundary after their environment allowlist in stageEnvironment.
+func podHarnessEnvPassthrough(names []string) []string {
+	control := make(map[string]bool, len(dispatcher.DispatcherControlEnv))
+	for _, name := range dispatcher.DispatcherControlEnv {
+		control[strings.ToUpper(name)] = true
+	}
+	var allowed []string
+	for _, name := range names {
+		if !control[strings.ToUpper(name)] {
+			allowed = append(allowed, name)
+		}
+	}
+	return allowed
+}
+
 // buildPodAgenticExecutor constructs the executor from the kit plus the pod's
 // own local facilities.
 // runsDir is the staging root the caller already created and already
@@ -354,7 +371,7 @@ func buildPodAgenticExecutor(kit *agentickit.Kit, stderr io.Writer, minted []dis
 	// stampVolumes). The daemon-side binding exists precisely because runner
 	// `self` has no such pod; layering it here would carve an ephemeral
 	// directory inside an already-ephemeral one.
-	adapterRegistry, err := podHarnessRegistry(kit.EnvCapabilities, nil, nil, "", "", false, nil, false)
+	adapterRegistry, err := podHarnessRegistry(kit.EnvCapabilities, podHarnessEnvPassthrough(kit.EnvPassthrough), kit.HarnessCommand, "", "", false, nil, false)
 	if err != nil {
 		return nil, fmt.Errorf("build harness registry: %w", err)
 	}

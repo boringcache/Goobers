@@ -1,0 +1,51 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+fail() {
+  printf 'Pod validation fixture: %s\n' "$1" >&2
+  exit 1
+}
+
+if [[ $# == 1 && $1 == --version ]]; then
+  printf '%s\n' 'Copilot deterministic pod validation fixture 1'
+  exit 0
+fi
+if [[ $# == 4 && $1 == -p && $2 == 'Reply with exactly: ok' &&
+      $3 == --allow-all-tools && $4 == --available-tools= ]]; then
+  printf '%s\n' ok
+  exit 0
+fi
+
+# The real Copilot adapter supplies the prompt, session and usage arguments.
+[[ ${1:-} == -p && $# -gt 2 ]] || fail 'The Copilot adapter did not supply a prompt.'
+: "${GOMODCACHE:?attempt module cache is required}"
+: "${GOCACHE:?attempt build cache is required}"
+: "${GOCACHEPROG:?the native Go cache adapter must be configured}"
+: "${GOOBERS_BORINGCACHE_EVIDENCE_DIR:?evidence directory is required}"
+[[ ${GOPROXY:-} == off && ${GOSUMDB:-} == off ]] || fail 'Go module network lookup must be disabled.'
+[[ -r ${BORINGCACHE_CI_BROKER_FILE:?native CI broker must reach the launcher} ]] || fail 'The native CI broker file is unreadable.'
+[[ -z ${COPILOT_GITHUB_TOKEN:-} && -z ${GH_TOKEN:-} && -z ${GITHUB_TOKEN:-} ]] || fail 'A model or forge credential reached the fixture.'
+[[ -z ${GOOBERS_POD_TOKEN:-} && -z ${GOOBERS_BORINGCACHE_UNDECLARED:-} ]] || fail 'A control-plane or undeclared variable reached the fixture.'
+[[ -z ${ACTIONS_ID_TOKEN_REQUEST_TOKEN:-} && -z ${ACTIONS_RUNTIME_TOKEN:-} ]] || fail 'A GitHub Actions credential reached the fixture.'
+[[ -f "$GOMODCACHE/gopkg.in/yaml.v3@v3.0.1/yaml.go" ]] || fail 'The declared yaml module was not restored.'
+[[ -n $(find "$GOMODCACHE/cache/download" -name '*.zip' -print -quit) ]] || fail 'No module archive was restored.'
+
+printf '%s\n' "$GOMODCACHE" > "$GOOBERS_BORINGCACHE_EVIDENCE_DIR/module-cache.txt"
+printf '%s\n' "$GOCACHE" > "$GOOBERS_BORINGCACHE_EVIDENCE_DIR/build-cache.txt"
+
+# Both commands operate on this repository. Module lookup is disabled before
+# either command starts, so a missing archive cannot be fetched from a proxy.
+if ! go mod download > "$GOOBERS_BORINGCACHE_EVIDENCE_DIR/offline-modules.log" 2>&1; then
+  cat "$GOOBERS_BORINGCACHE_EVIDENCE_DIR/offline-modules.log" >&2
+  fail 'The restored module cache did not satisfy offline module resolution.'
+fi
+if ! go test -mod=readonly -count=1 ./internal/agentickit > "$GOOBERS_BORINGCACHE_EVIDENCE_DIR/offline-go-test.log" 2>&1; then
+  cat "$GOOBERS_BORINGCACHE_EVIDENCE_DIR/offline-go-test.log" >&2
+  fail 'The repository kit tests failed with module downloads disabled.'
+fi
+cat "$GOOBERS_BORINGCACHE_EVIDENCE_DIR/offline-go-test.log" >&2
+
+mkdir -p .goobers
+printf '%s\n' '{}' > .goobers/copilot-usage.json
+printf '%s\n' '{"status":"success","summary":"Restored Go modules passed the repository kit tests with module downloads disabled.","outputs":{"modulesRestored":true,"offlineGoTest":true,"compilerCacheConfigured":true,"credentialBoundaryPassed":true}}' > .goobers/result.json
+cat .goobers/result.json

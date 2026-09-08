@@ -1,0 +1,22 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+if [[ $# == 1 && $1 == --goobers-launcher-contract ]]; then
+  printf '%s\n' '{"version":1,"sessionMode":"adapter-managed"}'
+  exit 0
+fi
+
+copilot=${GOOBERS_COPILOT_BINARY:-copilot}
+if [[ $# == 1 && ( $1 == --version || $1 == --help ) ]]; then
+  exec "$copilot" "$@"
+fi
+
+# This is Goobers' current non-interactive sign-in probe. It performs no Go
+# work and can run before a repository workspace or cache supervisor exists.
+if [[ $# == 4 && $1 == -p && $2 == 'Reply with exactly: ok' &&
+      $3 == --allow-all-tools && $4 == --available-tools= ]]; then
+  exec "$copilot" "$@"
+fi
+
+launcher_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
+exec "$launcher_dir/boringcache-stage" -- "$copilot" "$@"

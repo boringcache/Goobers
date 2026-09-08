@@ -1,0 +1,40 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+real=${GOOBERS_REAL_BINARY:-/opt/goobers/bin/goobers-real}
+if [[ ${1:-} != __dispatch-exec ]]; then
+  exec "$real" "$@"
+fi
+
+# A broker belongs to the supervisor in this same pod. An explicitly supplied
+# but unreadable handle is an error, not a request to enroll another identity.
+if [[ -n ${BORINGCACHE_CI_BROKER_FILE:-} ]]; then
+  if [[ ! -f $BORINGCACHE_CI_BROKER_FILE || ! -r $BORINGCACHE_CI_BROKER_FILE ]]; then
+    echo 'The configured BoringCache CI broker file is not readable.' >&2
+    exit 2
+  fi
+  exec "$real" "$@"
+fi
+
+args=(ci run)
+case ${GOOBERS_CACHE_OIDC_PROVIDER:-} in
+  github-actions)
+    args+=(--oidc-provider github-actions)
+    ;;
+  command)
+    if [[ -z ${GOOBERS_CACHE_OIDC_TOKEN_COMMAND:-} ]]; then
+      echo 'GOOBERS_CACHE_OIDC_TOKEN_COMMAND is required for the command OIDC provider.' >&2
+      exit 2
+    fi
+    args+=(--oidc-provider command --oidc-token-command "$GOOBERS_CACHE_OIDC_TOKEN_COMMAND")
+    ;;
+  *)
+    echo 'Set GOOBERS_CACHE_OIDC_PROVIDER to github-actions or command for this pod.' >&2
+    exit 2
+    ;;
+esac
+
+# The native supervisor owns token renewal and removes provider and static
+# credentials from the child environment. Token commands are never evaluated
+# by this shell wrapper.
+exec boringcache "${args[@]}" -- "$real" "$@"

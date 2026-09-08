@@ -1,0 +1,26 @@
+--- a/reference-workflows/gaggles/goobers/workflows/pr-remediation.yaml
++++ b/reference-workflows/gaggles/goobers/workflows/pr-remediation.yaml
+@@ -418,7 +418,9 @@
+       type: deterministic
+       goal: Download this run's Go module dependencies with a bounded, attributable timeout before the agentic implementation session begins.
+       run:
+-        command: ["go", "mod", "download"]
++        command: ["/opt/goobers-cache/boringcache-stage", "--", "go", "mod", "download"]
++        env:
++          BORINGCACHE_CACHE_POLICY: publish
+       timeoutSeconds: 300
+       retry:
+         maxAttempts: 1
+--- a/reference-workflows/gaggles/goobers/workflows/implementation.yaml
++++ b/reference-workflows/gaggles/goobers/workflows/implementation.yaml
+@@ -138,7 +138,9 @@
+       type: deterministic
+       goal: Download this run's Go module dependencies with a bounded, attributable timeout before the agentic implementation session begins.
+       run:
+-        command: ["go", "mod", "download"]
++        command: ["/opt/goobers-cache/boringcache-stage", "--", "go", "mod", "download"]
++        env:
++          BORINGCACHE_CACHE_POLICY: publish
+       timeoutSeconds: 300
+       retry:
+         maxAttempts: 1

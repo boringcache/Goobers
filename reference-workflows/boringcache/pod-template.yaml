@@ -1,0 +1,57 @@
+# Operator-owned Deployment template for a runner with host: goobers-cache-runner.
+# This file is not applied by the integration. Set the image, namespace,
+# service account, and runner resource limits for the actual deployment.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: goobers-cache-runner
+spec:
+  replicas: 0
+  selector:
+    matchLabels:
+      app: goobers-cache-runner
+  template:
+    metadata:
+      labels:
+        app: goobers-cache-runner
+    spec:
+      automountServiceAccountToken: false
+      serviceAccountName: goobers-cache
+      containers:
+        - name: stage
+          image: goobers-cache:local
+          env:
+            - name: GOMODCACHE
+              value: /cache/gomodcache
+            - name: GOCACHE
+              value: /cache/gocache
+            - name: BORINGCACHE_CACHE_POLICY
+              value: restore
+            - name: GOOBERS_CACHE_OIDC_PROVIDER
+              value: command
+            - name: GOOBERS_CACHE_OIDC_TOKEN_COMMAND
+              value: cat /var/run/secrets/boringcache/token
+          volumeMounts:
+            - name: cache-work
+              mountPath: /cache
+            - name: cache-identity
+              mountPath: /var/run/secrets/boringcache
+              readOnly: true
+          resources:
+            requests:
+              memory: 2Gi
+              ephemeral-storage: 4Gi
+            limits:
+              memory: 4Gi
+              ephemeral-storage: 6Gi
+      volumes:
+        - name: cache-work
+          emptyDir:
+            sizeLimit: 4Gi
+        - name: cache-identity
+          projected:
+            sources:
+              - serviceAccountToken:
+                  audience: urn:boringcache:workload
+                  expirationSeconds: 3600
+                  path: token

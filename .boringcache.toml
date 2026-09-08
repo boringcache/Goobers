@@ -3,6 +3,13 @@ workspace = "boringcache/goobers-onboarding"
 [profiles.modules]
 entries = ["go-mod-cache"]
 
+[entries.remediation-modules]
+path_env = "GOMODCACHE"
+tag = "go-remediation-modules"
+
+[profiles.remediation]
+entries = ["remediation-modules"]
+
 [adapters.go]
 tag = "go-test-compile"
 command = ["go", "test", "-run", "^$", "./..."]
