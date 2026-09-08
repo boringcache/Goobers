@@ -233,6 +233,17 @@ the .NET command here is an example, not an ADO requirement.
 goobers init --guided
 ```
 
+Do not pass a positional path argument to `goobers init --guided`; the guided
+initializer is for the current single-Instance model and creates the
+Instance root in the durable parent directory it discovers or you choose with
+`--instance-path`. It detects the repository identity, default branch, CI
+command, toolchain, and local credential state, then generates the Instance's
+`instance.yaml`, `config/` tree, and runtime metadata without touching the
+application repo. The wizard's deliberate non-actions are: no provider write,
+no workflow execution, no token prompt, and no change to the existing clone.
+It validates the discovered settings before closing, and the generated config is
+ready for customization before you start `goobers up`.
+
 Provide the existing local clone for `$GOOBERS_TARGET`. The tutorial discovers
 GitHub or Azure DevOps identity, default branch, CI command, toolchain, and CLI
 authentication. If the GitHub CLI account is not authenticated, the repository

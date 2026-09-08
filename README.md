@@ -117,6 +117,15 @@ start the guided browser setup:
 goobers init --guided
 ```
 
+`goobers init --guided` is the single-instance setup path: it does not take a
+positional instance path, it discovers an existing local clone and suggests a
+neighbouring durable instance directory, and it writes only the instance root
+(`instance.yaml` and `config/`) plus runtime state. It validates the derived
+configuration and the repository metadata before you leave the wizard, but it
+intentionally does not contact a provider, start a workflow, or make any
+credentialed write. To pin the instance location without a positional path,
+pass `--instance-path "/path/to/instance"`.
+
 The guided flow inspects the repository, derives what it can, adapts the
 canonical workflows, prepares required repository metadata, and validates the
 resulting instance. It does not execute a workflow.
