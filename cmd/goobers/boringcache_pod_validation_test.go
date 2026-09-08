@@ -8,6 +8,7 @@ import (
 	"io"
 	"io/fs"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -17,6 +18,8 @@ import (
 	"github.com/goobers/goobers/internal/agentickit"
 	"github.com/goobers/goobers/internal/dispatcher"
 	"github.com/goobers/goobers/internal/harness"
+	"github.com/goobers/goobers/internal/instance"
+	"sigs.k8s.io/yaml"
 )
 
 // TestBoringCachePodValidation is run from a precompiled test binary in a new
@@ -124,10 +127,17 @@ func TestBoringCachePodValidation(t *testing.T) {
 		}
 	})
 
-	passthrough := []string{
-		"BORINGCACHE_CI_BROKER_FILE", "BORINGCACHE_CACHE_POLICY", "BORINGCACHE_WORKSPACE",
-		"GOOBERS_COPILOT_BINARY", "GOOBERS_BORINGCACHE_EVIDENCE_DIR",
+	operatorData, err := os.ReadFile(filepath.Join(workspace, "reference-workflows/boringcache/instance-fragment.yaml"))
+	if err != nil {
+		t.Fatal(err)
 	}
+	var operator instance.Config
+	if err := yaml.UnmarshalStrict(operatorData, &operator); err != nil {
+		t.Fatal(err)
+	}
+	passthrough := append(append([]string(nil), operator.Runner.EnvPassthrough...),
+		"GOOBERS_COPILOT_BINARY", "GOOBERS_BORINGCACHE_EVIDENCE_DIR",
+	)
 	if phase == "warm" {
 		t.Setenv("BORINGCACHE_CACHE_POLICY", "publish")
 		command, _ := json.Marshal([]string{"/opt/goobers-cache/boringcache-stage", "--", "go", "mod", "download"})
@@ -136,6 +146,15 @@ func TestBoringCachePodValidation(t *testing.T) {
 		t.Setenv(dispatcher.EnvStageTimeout, "300s")
 		t.Setenv(dispatcher.EnvStageEnvDefaultDeny, "true")
 		t.Setenv(dispatcher.EnvStageEnvAllow, string(allow))
+		commandContext := exec.CommandContext(ctx, "boringcache", "ci", "context", "--json")
+		commandContext.Env = stageEnvironment()
+		contextJSON, err := commandContext.Output()
+		if err != nil {
+			t.Fatalf("inspect deterministic stage execution context: %v", err)
+		}
+		if err := os.WriteFile(filepath.Join(evidenceDir, "execution-context.json"), contextJSON, 0o600); err != nil {
+			t.Fatal(err)
+		}
 		evidence["cache_policy"] = "publish"
 		evidence["command"] = []string{"go", "mod", "download"}
 		evidence["stage_timeout_seconds"] = 300
@@ -163,7 +182,7 @@ func TestBoringCachePodValidation(t *testing.T) {
 			},
 			Instructions:   map[string]string{"cache-validation": "Run the deterministic cache validation fixture and report its result. No model or forge access is required."},
 			EnvPassthrough: passthrough,
-			HarnessCommand: map[string][]string{string(apiv1.HarnessCopilot): {"/opt/goobers-cache/boringcache-copilot"}},
+			HarnessCommand: operator.Runner.HarnessCommand,
 		}
 		data, digest, err := agentickit.Marshal(kit)
 		if err != nil {
@@ -210,6 +229,24 @@ func TestBoringCachePodValidation(t *testing.T) {
 	if result.Status != apiv1.ResultSuccess || result.Error != nil {
 		t.Fatalf("stage result = %s, error = %+v", result.Status, result.Error)
 	}
+	contextData, err := os.ReadFile(filepath.Join(evidenceDir, "execution-context.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	var executionContext map[string]any
+	if err := json.Unmarshal(contextData, &executionContext); err != nil {
+		t.Fatal(err)
+	}
+	for field, want := range map[string]string{
+		"provider": "github-actions", "run_uid": os.Getenv("GITHUB_RUN_ID"),
+		"repository": "boringcache/Goobers", "run_attempt": os.Getenv("GITHUB_RUN_ATTEMPT"),
+		"source_ref": "refs/heads/boringcache-validation", "commit_sha": os.Getenv("GITHUB_SHA"),
+	} {
+		if want == "" || executionContext[field] != want {
+			t.Fatalf("stage execution context %s = %v, want %q", field, executionContext[field], want)
+		}
+	}
+	evidence["execution_context_preserved"] = true
 	for name, original := range map[string][]byte{"go.mod": goMod, "go.sum": goSum} {
 		current, err := os.ReadFile(filepath.Join(workspace, name))
 		if err != nil || boringCacheValidationDigest(current) != boringCacheValidationDigest(original) {

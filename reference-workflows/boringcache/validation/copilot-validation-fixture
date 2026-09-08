@@ -32,6 +32,7 @@ fi
 
 printf '%s\n' "$GOMODCACHE" > "$GOOBERS_BORINGCACHE_EVIDENCE_DIR/module-cache.txt"
 printf '%s\n' "$GOCACHE" > "$GOOBERS_BORINGCACHE_EVIDENCE_DIR/build-cache.txt"
+boringcache ci context --json > "$GOOBERS_BORINGCACHE_EVIDENCE_DIR/execution-context.json"
 
 # Both commands operate on this repository. Module lookup is disabled before
 # either command starts, so a missing archive cannot be fetched from a proxy.

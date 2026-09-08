@@ -113,8 +113,13 @@ this example.
 GitHub Actions uses `GOOBERS_CACHE_OIDC_PROVIDER=github-actions` instead. The
 native `ci run` supervisor renews workload authorization and gives the child
 its local broker handle. It removes its provider and static credential
-environment from the child. Only the handle and policy/workspace names are
-passed to the harness through the instance fragment.
+environment from the child. The instance fragment passes the handle,
+policy/workspace names, and an explicit list of public GitHub run metadata to
+the harness. Those public fields keep cache operations attached to the workflow
+run after Goobers applies its environment allowlist; they grant no cache
+authority. Provider request credentials remain excluded. Other CI providers
+need their equivalent public run metadata or the CLI's supported
+`BORINGCACHE_CI_*` context inputs explicitly configured by the operator.
 
 The pod needs egress to the configured BoringCache API and storage endpoints,
 plus the issuer endpoints required by the chosen provider. Trusted warming
@@ -139,8 +144,10 @@ execute `buildPodAgenticExecutor` with the configured Copilot wrapper. A
 deterministic Copilot fixture checks for restored module files, runs
 `go mod download` with `GOPROXY=off` and `GOSUMDB=off`, and runs the focused
 `internal/agentickit` tests through the normal harness completion-file path.
-It checks that compiler caching is configured; that alone is not a measured
-compiler cache hit or a speed improvement.
+It also uses released `boringcache ci context --json` to verify the run,
+repository, attempt, ref, and commit after each execution path's environment
+filter. It checks that compiler caching is configured; that alone is not a
+measured compiler cache hit or a speed improvement.
 
 This validation exercises the two Goobers execution paths inside separate Kubernetes
 pods. It does not run a live daemon, call a language model, deploy an operator's

@@ -5,5 +5,17 @@ runner:
     - BORINGCACHE_CI_BROKER_FILE
     - BORINGCACHE_CACHE_POLICY
     - BORINGCACHE_WORKSPACE
+    # Public execution metadata; provider request credentials are excluded.
+    - GITHUB_ACTIONS
+    - GITHUB_RUN_ID
+    - GITHUB_RUN_ATTEMPT
+    - GITHUB_REPOSITORY
+    - GITHUB_REF
+    - GITHUB_REF_NAME
+    - GITHUB_HEAD_REF
+    - GITHUB_BASE_REF
+    - GITHUB_SHA
+    - GITHUB_JOB
+    - GITHUB_EVENT_NAME
   harnessCommand:
     copilot: ["/opt/goobers-cache/boringcache-copilot"]

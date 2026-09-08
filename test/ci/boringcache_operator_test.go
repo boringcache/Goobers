@@ -112,6 +112,16 @@ func TestBoringCacheOperatorTemplateRendersWithPrivateCacheAndBrokerAllowlist(t 
 	if !slices.Contains(allowed, "BORINGCACHE_CI_BROKER_FILE") {
 		t.Fatal("default-deny removes the local supervisor handle from the deterministic stage")
 	}
+	for _, name := range []string{"GITHUB_ACTIONS", "GITHUB_RUN_ID", "GITHUB_REPOSITORY", "GITHUB_RUN_ATTEMPT", "GITHUB_REF", "GITHUB_SHA"} {
+		if !slices.Contains(allowed, name) {
+			t.Fatalf("default-deny removes public execution metadata %s", name)
+		}
+	}
+	for _, name := range []string{"ACTIONS_ID_TOKEN_REQUEST_URL", "ACTIONS_ID_TOKEN_REQUEST_TOKEN", "GITHUB_TOKEN", "COPILOT_GITHUB_TOKEN"} {
+		if slices.Contains(allowed, name) {
+			t.Fatalf("operator allowlist forwards a provider or model credential: %s", name)
+		}
+	}
 	for _, volume := range pod.Spec.Volumes {
 		if volume.Name == "cache-work" {
 			if volume.EmptyDir == nil || volume.EmptyDir.Medium != "" || volume.EmptyDir.SizeLimit == nil || volume.EmptyDir.SizeLimit.String() != "4Gi" {
