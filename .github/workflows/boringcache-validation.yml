@@ -55,7 +55,7 @@ jobs:
         run: |
           mkdir -p "$RUNNER_TEMP/validation"
           git rev-parse HEAD > "$RUNNER_TEMP/validation/validation-commit.txt"
-          git merge-base HEAD origin/main > "$RUNNER_TEMP/validation/upstream-commit.txt"
+          cat .github/boringcache-upstream > "$RUNNER_TEMP/validation/upstream-commit.txt"
           uname -a > "$RUNNER_TEMP/validation/runner.txt"
       - name: Set up Go
         uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e
@@ -96,7 +96,7 @@ jobs:
         run: |
           mkdir -p "$RUNNER_TEMP/validation"
           git rev-parse HEAD > "$RUNNER_TEMP/validation/validation-commit.txt"
-          git merge-base HEAD origin/main > "$RUNNER_TEMP/validation/upstream-commit.txt"
+          cat .github/boringcache-upstream > "$RUNNER_TEMP/validation/upstream-commit.txt"
           uname -a > "$RUNNER_TEMP/validation/runner.txt"
       - name: Set up Go
         uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e
@@ -148,7 +148,7 @@ jobs:
         run: |
           mkdir -p "$RUNNER_TEMP/validation"
           git rev-parse HEAD > "$RUNNER_TEMP/validation/validation-commit.txt"
-          git merge-base HEAD origin/main > "$RUNNER_TEMP/validation/upstream-commit.txt"
+          cat .github/boringcache-upstream > "$RUNNER_TEMP/validation/upstream-commit.txt"
           uname -a > "$RUNNER_TEMP/validation/runner.txt"
       - name: Set up Go
         uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e
@@ -200,7 +200,7 @@ jobs:
         run: |
           mkdir -p "$RUNNER_TEMP/validation"
           git rev-parse HEAD > "$RUNNER_TEMP/validation/validation-commit.txt"
-          git merge-base HEAD origin/main > "$RUNNER_TEMP/validation/upstream-commit.txt"
+          cat .github/boringcache-upstream > "$RUNNER_TEMP/validation/upstream-commit.txt"
           uname -a > "$RUNNER_TEMP/validation/runner.txt"
       - name: Set up Go
         uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e
@@ -239,7 +239,7 @@ jobs:
         run: |
           mkdir -p "$RUNNER_TEMP/validation"
           git rev-parse HEAD > "$RUNNER_TEMP/validation/validation-commit.txt"
-          git merge-base HEAD origin/main > "$RUNNER_TEMP/validation/upstream-commit.txt"
+          cat .github/boringcache-upstream > "$RUNNER_TEMP/validation/upstream-commit.txt"
           uname -a > "$RUNNER_TEMP/validation/runner.txt"
       - name: Set up Go
         uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e
@@ -288,7 +288,7 @@ jobs:
         run: |
           mkdir -p "$RUNNER_TEMP/validation"
           git rev-parse HEAD > "$RUNNER_TEMP/validation/validation-commit.txt"
-          git merge-base HEAD origin/main > "$RUNNER_TEMP/validation/upstream-commit.txt"
+          cat .github/boringcache-upstream > "$RUNNER_TEMP/validation/upstream-commit.txt"
           uname -a > "$RUNNER_TEMP/validation/runner.txt"
       - name: Set up Go
         uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e
