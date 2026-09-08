@@ -215,7 +215,7 @@ test("configures a repository through the multi-page guided wizard", async ({ pa
   await expect(page.getByText(/All configuration, harness, and repository checks passed/)).toBeVisible();
   await page.getByRole("button", { name: "Continue" }).click();
 
-  await expect(page.getByRole("heading", { name: "Goobers is ready" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Setup complete" })).toBeVisible();
   await expect(page.getByText(/goobers-dsl-author/)).toBeVisible();
   await expect(page.getByText(/close this browser window/i)).toBeVisible();
   await expect(page.getByRole("progressbar")).toHaveCount(0);

@@ -152,6 +152,26 @@ func TestGettingStartedCompleteSignalsServerShutdown(t *testing.T) {
 	}
 }
 
+func TestGettingStartedRuntimeChoiceUsesSupportedLifecycleCommands(t *testing.T) {
+	server := newTestGuidedServer(t, t.TempDir())
+	calls := stubGuidedExec(t, "printf 'ok'\n")
+	recorder := guidedPost(
+		http.HandlerFunc(server.serveGuided),
+		"/guided/actions/runtime-choice",
+		`{"choice":"auto","instancePath":"C:/work/tutorial-instance"}`,
+	)
+	if recorder.Code != http.StatusOK {
+		t.Fatalf("status = %d body = %q", recorder.Code, recorder.Body.String())
+	}
+	body := decodeGuidedResponse[guidedRuntimeChoiceResponse](t, recorder)
+	if body.Choice != "auto" || body.Command == "" || body.ExitCode != 0 {
+		t.Fatalf("runtime body = %+v", body)
+	}
+	if got, want := (*calls), [][]string{{"service", "task-install", "C:/work/tutorial-instance"}}; !reflect.DeepEqual(got, want) {
+		t.Fatalf("argv = %#v, want %#v", got, want)
+	}
+}
+
 func TestGettingStartedInspectsLocalGitHubRepository(t *testing.T) {
 	repository := filepath.Join(t.TempDir(), "widgets")
 	if err := os.MkdirAll(repository, 0o755); err != nil {

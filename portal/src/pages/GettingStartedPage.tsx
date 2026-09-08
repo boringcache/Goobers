@@ -141,6 +141,9 @@ export function GettingStartedPage({ client = defaultClient }: { client?: Guided
     "goobers-wizard-model-token",
     "",
   );
+  const [runtimeChoice, setRuntimeChoice] = useSessionState<
+    "foreground" | "auto" | "machine-service" | "not-now"
+  >("goobers-wizard-runtime-choice", "foreground");
   const [createStarterIssue, setCreateStarterIssue] = useSessionState(
     "goobers-wizard-create-starter-issue",
     true,
@@ -233,7 +236,42 @@ export function GettingStartedPage({ client = defaultClient }: { client?: Guided
   const implementationSelected = workflows.includes("implementation");
   const pullRequestsNeeded =
     implementationSelected || workflows.includes("backlog-curation");
-  const customizationPrompt = `Use the goobers-dsl-author skill to inspect ${repo.trim() || "my application repository"} and customize the generated gaggle in the Goobers Instance at ${instancePath.trim() || state?.instancePath || "my instance folder"} for the repository's actual contribution, CI, and review conventions. Explain the proposed state graph and least-privilege capabilities before changing files, then update the configuration and validate it.`;
+  const fallbackInstancePath = instancePath.trim() || state?.instancePath || "C:\\work\\tutorial-instance";
+  const customizationPrompt = `Use the goobers-dsl-author skill to inspect ${repo.trim() || "my application repository"} and customize the generated gaggle in the Goobers Instance at ${fallbackInstancePath} for the repository's actual contribution, CI, and review conventions. Explain the proposed state graph and least-privilege capabilities before changing files, then update the configuration and validate it.`;
+  const runtimeIdentity = inspection?.auth.identity || "current interactive user";
+  const runtimeCommand = `goobers up "${fallbackInstancePath}"`;
+  const runtimeChoices = [
+    {
+      id: "foreground" as const,
+      title: "Run in the foreground now",
+      summary: "Recommended first run. Keep the daemon attached to the terminal that launched setup.",
+      command: runtimeCommand,
+    },
+    {
+      id: "auto" as const,
+      title: "Start automatically for me",
+      summary: "Install the per-user Windows Scheduled Task and preserve the same interactive profile.",
+      command: `goobers service task-install "${fallbackInstancePath}"`,
+    },
+    {
+      id: "machine-service" as const,
+      title: "Advanced machine service",
+      summary: "Windows LocalSystem service. It cannot inherit the user profile or stored auth state.",
+      command: `goobers service install --confirm-local-system "${fallbackInstancePath}"`,
+    },
+    {
+      id: "not-now" as const,
+      title: "Not now",
+      summary: "Leave the daemon stopped and start it later with the exact command below.",
+      command: runtimeCommand,
+    },
+  ];
+  const selectedRuntime = runtimeChoices.find((choice) => choice.id === runtimeChoice) ?? runtimeChoices[0];
+  const enabledWorkflowSummary = workflows.map((workflow) => ({
+    workflow,
+    command: `goobers run ${workflow} "${fallbackInstancePath}"`,
+    schedule: "Manual/event-driven — no timer",
+  }));
 
   useEffect(() => {
     if (!implementationSelected) {
@@ -1245,16 +1283,92 @@ export function GettingStartedPage({ client = defaultClient }: { client?: Guided
         );
       case "complete":
         return (
-          <WizardPage className="guided-complete-page" title="Goobers is ready">
+          <WizardPage className="guided-complete-page" title="Setup complete">
             <div aria-hidden="true" className="guided-complete-mascot">
               <AnimatedGoober />
             </div>
             <p className="guided-welcome-lead">
-              Your configuration is ready, and the setup server has stopped.
+              Configuration created and repository checks passed under {runtimeIdentity}.
             </p>
+            <ul className="guided-badges">
+              <li className="guided-badge">Configuration created</li>
+              <li className="guided-badge">Repository prepared</li>
+              <li className="guided-badge">
+                {validationPassed ? "Harness and repo checks passed" : "Checks not yet run"}
+              </li>
+              <li className="guided-badge">
+                Daemon: {selectedRuntime.id === "not-now" ? "not running" : "ready to start"}
+              </li>
+            </ul>
+            <ReviewTable
+              rows={[
+                ["Instance path", instancePath.trim() || state.instancePath],
+                ["Runtime identity", runtimeIdentity],
+                ["Harness", harness],
+                ["Selected supervision", selectedRuntime.title],
+                ["Command", selectedRuntime.command],
+              ]}
+            />
+            <div className="guided-callout">
+              <strong>Windows runtime guidance</strong>
+              <span>
+                For Copilot and Claude Code stored login, validation proves access for the
+                displayed interactive user only. A per-user Scheduled Task keeps that same
+                user profile. LocalSystem cannot inherit the user's stored CLI session,
+                GitHub CLI keyring, Credential Manager entries, %LOCALAPPDATA%, mapped
+                drives, or PATH by default.
+              </span>
+              {modelTokenEnv.trim() ? (
+                <span>
+                  The model token environment variable name is <code>{modelTokenEnv.trim()}</code>.
+                  Goobers will not read or display the secret value.
+                </span>
+              ) : (
+                <span>
+                  No explicit model-token environment variable is configured; the harness will
+                  use the default CLI session if one is available.
+                </span>
+              )}
+            </div>
+            <fieldset className="guided-radio-group">
+              <legend>Choose how Goobers should keep running</legend>
+              {runtimeChoices.map((choice) => (
+                <label data-selected={runtimeChoice === choice.id} key={choice.id}>
+                  <input
+                    checked={runtimeChoice === choice.id}
+                    name="runtime-choice"
+                    onChange={() => setRuntimeChoice(choice.id)}
+                    type="radio"
+                  />
+                  <span>
+                    <strong>{choice.title}</strong>
+                    <small>{choice.summary}</small>
+                    <code>{choice.command}</code>
+                  </span>
+                </label>
+              ))}
+            </fieldset>
+            <div className="guided-fields">
+              <TextField
+                label="Optional model token environment variable"
+                onChange={setModelTokenEnv}
+                placeholder="MY_MODEL_TOKEN"
+                value={modelTokenEnv}
+              />
+            </div>
+            <div className="guided-callout">
+              <strong>Enabled workflow schedules</strong>
+              <ul>
+                {enabledWorkflowSummary.map(({ workflow, command, schedule }) => (
+                  <li key={workflow}>
+                    <strong>{workflow}</strong>: <code>{command}</code> — {schedule}
+                  </li>
+                ))}
+              </ul>
+            </div>
             <p>
-              Next, ask your coding agent to tailor the generated gaggle to this
-              repository.
+              The wizard does not run any workflow automatically. Use the command above or the
+              exact workflow commands below to start the instance or run a workflow later.
             </p>
             <div className="guided-prompt-copy">
               <code>{customizationPrompt}</code>
@@ -1292,7 +1406,7 @@ export function GettingStartedPage({ client = defaultClient }: { client?: Guided
               href="https://github.com/Agent-Clubhouse/Goobers/blob/main/docs/guides/instance-placement.md"
               label="Learn more about Instance layout and operational data"
             />
-            <p>You can now close this browser window.</p>
+            <p>You can now close this browser window or start the daemon in the mode you selected.</p>
           </WizardPage>
         );
     }

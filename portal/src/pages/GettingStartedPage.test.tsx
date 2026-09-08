@@ -690,7 +690,7 @@ describe("GettingStartedPage", () => {
     await user.click(screen.getByRole("button", { name: "Run checks" }));
     await screen.findByText(/All configuration, harness, and repository checks passed/);
     await continueWizard(user);
-    expect(screen.getByRole("heading", { name: "Goobers is ready" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Setup complete" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Copy prompt" })).toBeInTheDocument();
     expect(screen.getByText(/goobers-dsl-author/)).toBeInTheDocument();
     expect(screen.getByText(/close this browser window/i)).toBeInTheDocument();

@@ -87,6 +87,18 @@ export interface GuidedGitHubAuthorizationResult {
   message: string;
 }
 
+export type GuidedRuntimeChoice = "foreground" | "auto" | "machine-service" | "not-now";
+
+export interface GuidedRuntimeActionResult {
+  choice: GuidedRuntimeChoice;
+  instancePath: string;
+  command: string;
+  exitCode: number;
+  started: boolean;
+  stdout: string;
+  stderr: string;
+}
+
 export interface GuidedChooseFolderResult {
   path?: string;
   canceled: boolean;
@@ -348,6 +360,14 @@ export class GuidedClient {
 
   getStatus(): Promise<GuidedEnvelopeResult<StatusEnvelope>> {
     return this.request("/guided/status");
+  }
+
+  startRuntime(body: {
+    choice: GuidedRuntimeChoice;
+    instancePath: string;
+    identity?: string;
+  }): Promise<GuidedRuntimeActionResult> {
+    return this.post("/guided/actions/runtime-choice", body);
   }
 
   probeBacklog(): Promise<GuidedProbeResult> {

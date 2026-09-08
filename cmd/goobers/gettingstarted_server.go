@@ -170,6 +170,8 @@ func (s *guidedServer) serveGuided(w http.ResponseWriter, r *http.Request) {
 		s.handlePrepareRepository(w, r)
 	case r.URL.Path == "/guided/actions/complete":
 		s.handleComplete(w, r)
+	case r.URL.Path == "/guided/actions/runtime-choice":
+		s.handleRuntimeChoice(w, r)
 	case r.URL.Path == "/guided/actions/connect":
 		s.handleConnect(w, r)
 	case r.URL.Path == "/guided/actions/validate":
@@ -200,6 +202,81 @@ func (s *guidedServer) handleComplete(w http.ResponseWriter, r *http.Request) {
 	s.completionOnce.Do(func() {
 		close(s.completed)
 	})
+}
+
+type guidedRuntimeChoiceRequest struct {
+	Choice       string `json:"choice"`
+	InstancePath string `json:"instancePath,omitempty"`
+	Identity     string `json:"identity,omitempty"`
+}
+
+type guidedRuntimeChoiceResponse struct {
+	Choice       string `json:"choice"`
+	InstancePath string `json:"instancePath"`
+	Command      string `json:"command"`
+	ExitCode     int    `json:"exitCode"`
+	Started      bool   `json:"started"`
+	Stdout       string `json:"stdout"`
+	Stderr       string `json:"stderr"`
+}
+
+func (s *guidedServer) handleRuntimeChoice(w http.ResponseWriter, r *http.Request) {
+	if !requireGuidedMethod(w, r, http.MethodPost) {
+		return
+	}
+	var input guidedRuntimeChoiceRequest
+	if !decodeGuidedBody(w, r, &input) {
+		return
+	}
+	choice := strings.TrimSpace(strings.ToLower(input.Choice))
+	instancePath := strings.TrimSpace(input.InstancePath)
+	if instancePath == "" {
+		instancePath = s.instancePath
+	}
+	var argv []string
+	var started bool
+	switch choice {
+	case "foreground":
+		argv = []string{"up", instancePath}
+		started = true
+	case "auto":
+		argv = []string{"service", "task-install", instancePath}
+		started = true
+	case "machine-service":
+		argv = []string{"service", "install", "--confirm-local-system", instancePath}
+		started = true
+	case "not-now":
+		argv = nil
+		started = false
+	default:
+		writeGuidedJSON(w, http.StatusBadRequest, guidedErrorBody{
+			Code:    "invalid_runtime_choice",
+			Message: "runtime choice must be foreground, auto, machine-service, or not-now",
+		})
+		return
+	}
+	response := guidedRuntimeChoiceResponse{
+		Choice:       choice,
+		InstancePath: instancePath,
+		Command:      "",
+		ExitCode:     0,
+		Started:      started,
+	}
+	if len(argv) > 0 {
+		result, err := s.execSync(r.Context(), argv...)
+		if err != nil {
+			writeGuidedExecFailure(w, err)
+			return
+		}
+		response.Command = strings.Join(argv, " ")
+		response.ExitCode = result.exitCode
+		response.Stdout = result.stdout
+		response.Stderr = result.stderr
+		writeGuidedJSON(w, http.StatusOK, response)
+		return
+	}
+	response.Command = "goobers up \"" + instancePath + "\""
+	writeGuidedJSON(w, http.StatusOK, response)
 }
 
 type guidedErrorBody struct {
