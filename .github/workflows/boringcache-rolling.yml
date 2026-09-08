@@ -1,0 +1,120 @@
+name: BoringCache rolling validation
+
+on:
+  workflow_dispatch:
+    inputs:
+      cli_version:
+        description: Optional exact BoringCache CLI release or prerelease tag
+        required: false
+        default: ""
+        type: string
+  push:
+    branches: [boringcache-validation]
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: boringcache-validation-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  modules-commit:
+    name: BoringCache modules commit
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    if: github.event_name == 'workflow_dispatch' || startsWith(github.event.head_commit.message, 'Advance upstream to ')
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Record source and runner
+        shell: bash
+        run: |
+          mkdir -p "$RUNNER_TEMP/validation"
+          git rev-parse HEAD > "$RUNNER_TEMP/validation/validation-commit.txt"
+          git merge-base HEAD origin/main > "$RUNNER_TEMP/validation/upstream-commit.txt"
+          uname -a > "$RUNNER_TEMP/validation/runner.txt"
+      - name: Set up Go
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e
+        with:
+          go-version-file: go.mod
+          cache: false
+      - name: Record Go toolchain
+        run: go version | tee "$RUNNER_TEMP/validation/toolchain.txt"
+      - name: BoringCache modules
+        id: cache
+        uses: boringcache/one@e4ead12dabc993eba201c402a82e396166dade03 # v1.20.4
+        with:
+          cli-version: ${{ inputs.cli_version }}
+          mode: archive
+          trust-policy: publish
+          fail-on-cache-error: true
+          cache-profiles: modules
+      - name: Download and verify all modules
+        timeout-minutes: 5
+        run: |
+          started=$SECONDS
+          go mod download all
+          go mod verify
+          printf "workload_seconds=%s\n" "$((SECONDS - started))" > "$RUNNER_TEMP/validation/timing.txt"
+      - name: Retain validation evidence
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: modules-commit-${{ github.run_id }}-${{ github.run_attempt }}
+          include-hidden-files: true
+          path: |
+            ${{ runner.temp }}/validation
+            ${{ steps.cache.outputs.evidence-path }}
+          if-no-files-found: error
+
+  compiler-commit:
+    name: BoringCache compiler commit
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    if: github.event_name == 'workflow_dispatch' || startsWith(github.event.head_commit.message, 'Advance upstream to ')
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Record source and runner
+        shell: bash
+        run: |
+          mkdir -p "$RUNNER_TEMP/validation"
+          git rev-parse HEAD > "$RUNNER_TEMP/validation/validation-commit.txt"
+          git merge-base HEAD origin/main > "$RUNNER_TEMP/validation/upstream-commit.txt"
+          uname -a > "$RUNNER_TEMP/validation/runner.txt"
+      - name: Set up Go
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e
+        with:
+          go-version-file: go.mod
+          cache: false
+      - name: Record Go toolchain
+        run: go version | tee "$RUNNER_TEMP/validation/toolchain.txt"
+      - name: BoringCache compiler
+        id: cache
+        uses: boringcache/one@e4ead12dabc993eba201c402a82e396166dade03 # v1.20.4
+        with:
+          cli-version: ${{ inputs.cli_version }}
+          mode: go
+          trust-policy: publish
+          fail-on-cache-error: true
+      - name: Compile Go test packages
+        run: |
+          started=$SECONDS
+          go test -run '^$' ./...
+          printf "workload_seconds=%s\n" "$((SECONDS - started))" > "$RUNNER_TEMP/validation/timing.txt"
+      - name: Retain validation evidence
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: compiler-commit-${{ github.run_id }}-${{ github.run_attempt }}
+          include-hidden-files: true
+          path: |
+            ${{ runner.temp }}/validation
+            ${{ steps.cache.outputs.evidence-path }}
+          if-no-files-found: error

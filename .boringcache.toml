@@ -1,0 +1,9 @@
+workspace = "boringcache/goobers-onboarding"
+
+[profiles.modules]
+entries = ["go-mod-cache"]
+
+[adapters.go]
+tag = "go-test-compile"
+command = ["go", "test", "-run", "^$", "./..."]
+fail-on-cache-error = true
