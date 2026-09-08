@@ -76,6 +76,14 @@ through the supported `--workspace` option.
    existing transitions. Copilot sessions default to restore. Use publication
    only where the workload identity is authorized to write trusted content.
 
+`runner.harnessCommand` applies to the whole instance, including Copilot stages
+placed on a self runner. Configure affected stages to select the updated pod
+runner, or launch their self execution inside its own native `boringcache ci run`
+supervisor on that host. Installing the `goobers` wrapper does not supervise
+self execution: it starts a supervisor only for `__dispatch-exec`. Without a
+local broker, the Copilot cache launcher fails before starting the session.
+A broker from another pod or host cannot supply this self-runner connection.
+
 The template uses fresh disk-backed `emptyDir` storage with a 4 GiB size limit:
 `GOMODCACHE=/cache/gomodcache` and `GOCACHE=/cache/gocache`. The default 512 MiB
 memory-backed `/tmp` remains separate. Set the runner's `provides.memory` and
