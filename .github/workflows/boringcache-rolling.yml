@@ -46,7 +46,7 @@ jobs:
         run: go version | tee "$RUNNER_TEMP/validation/toolchain.txt"
       - name: BoringCache modules
         id: cache
-        uses: boringcache/one@e4ead12dabc993eba201c402a82e396166dade03 # v1.20.4
+        uses: boringcache/one@a610ec5a564efd9b360925056dbade04deb5def6 # v1.30.0
         with:
           cli-version: ${{ inputs.cli_version }}
           mode: archive
@@ -97,7 +97,7 @@ jobs:
         run: go version | tee "$RUNNER_TEMP/validation/toolchain.txt"
       - name: BoringCache compiler
         id: cache
-        uses: boringcache/one@e4ead12dabc993eba201c402a82e396166dade03 # v1.20.4
+        uses: boringcache/one@a610ec5a564efd9b360925056dbade04deb5def6 # v1.30.0
         with:
           cli-version: ${{ inputs.cli_version }}
           mode: go

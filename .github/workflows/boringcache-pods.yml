@@ -30,9 +30,8 @@ jobs:
       - name: Set evidence directory
         run: printf 'EVIDENCE_DIR=%s/pod-evidence\n' "$RUNNER_TEMP" >> "$GITHUB_ENV"
       - name: Restore modules for building the test driver
-        uses: boringcache/one@e4ead12dabc993eba201c402a82e396166dade03 # v1.20.4
+        uses: boringcache/one@a610ec5a564efd9b360925056dbade04deb5def6 # v1.30.0
         with:
-          cli-version: v1.20.5
           mode: archive
           trust-policy: restore
           cache-profiles: modules
