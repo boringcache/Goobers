@@ -1,10 +1,10 @@
 # Build context: this directory plus verified Linux binaries named
-# boringcache-v1.30.0 and goobers. GOOBERS_IMAGE is the operator's existing
+# boringcache-v1.30.1 and goobers. GOOBERS_IMAGE is the operator's existing
 # runner image, pinned by digest and containing its normal Go and Copilot tools.
 ARG GOOBERS_IMAGE
 FROM ${GOOBERS_IMAGE}
 
-COPY --chmod=0755 boringcache-v1.30.0 /usr/local/bin/boringcache
+COPY --chmod=0755 boringcache-v1.30.1 /usr/local/bin/boringcache
 COPY --chmod=0755 goobers /opt/goobers/bin/goobers-real
 COPY --chmod=0755 bin/ /opt/goobers-cache/
 ENV PATH="/opt/goobers-cache:${PATH}"

@@ -40,7 +40,7 @@ The three executable wrappers in [bin](bin) have separate responsibilities:
   the existing credential probe run directly, without a repository or cache
   connection. Actual sessions run through `boringcache-stage`.
 
-The launcher uses released CLI v1.30.0. The existing modules benchmark and
+The launcher uses released CLI v1.30.1. The existing modules benchmark and
 compiler tag remain unchanged; pod persistence is not a new cold compiler
 benchmark. `BORINGCACHE_WORKSPACE`, when set, overrides the plan's workspace
 through the supported `--workspace` option.
@@ -49,8 +49,8 @@ through the supported `--workspace` option.
 
 1. Build the modified Goobers executable for the runner's Linux architecture.
    Put it at `goobers` in a temporary copy of this directory. Put the
-   checksum-verified BoringCache v1.30.0 Linux binary at
-   `boringcache-v1.30.0` in that same directory. Build [Dockerfile](Dockerfile)
+   checksum-verified BoringCache v1.30.1 Linux binary at
+   `boringcache-v1.30.1` in that same directory. Build [Dockerfile](Dockerfile)
    with `GOOBERS_IMAGE` set to the existing runner image by digest. That base
    must retain its normal Go and Copilot tools, Bash, and a numeric non-root
    user. The image preserves that user. Install this build on the daemon too,
